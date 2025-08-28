@@ -238,3 +238,113 @@ else:
             use_container_width=True
         )
 
+# 4º Análise -> Recebimentos por ano por Setor (Segmento)
+
+st.markdown("---")
+st.subheader("📊 Recebimentos por ano por Setor (Segmento)")
+
+# soma total recebido por linha (Agência + Unidade + IA-UPE)
+df["_total_recebido"] = df[COLS_VAL].sum(axis=1)
+
+# Agregei por Ano × Segmento
+setor_ano = (
+    df.dropna(subset=[COL_ANO, COL_SEG])
+      .groupby([COL_ANO, COL_SEG], dropna=True)["_total_recebido"]
+      .sum()
+      .reset_index(name="Valor (R$)")
+      .sort_values([COL_ANO, COL_SEG])
+)
+
+if setor_ano.empty:
+    st.info("Sem dados suficientes para a análise por setor/ano.")
+else:
+    # anos como categoria ordenada
+    setor_ano["Ano_str"] = setor_ano[COL_ANO].astype(int).astype(str)
+    anos_ordem = sorted(setor_ano["Ano_str"].unique().tolist(), key=int)
+
+    # gráfico: colunas agrupadas (um grupo por ano, uma barra por segmento)
+    fig_t4 = px.bar(
+        setor_ano,
+        x="Ano_str", y="Valor (R$)", color=COL_SEG,
+        barmode="group",
+        category_orders={"Ano_str": anos_ordem},
+        title="Recebimentos anuais por Setor (Segmento)"
+    )
+    fig_t4.update_layout(xaxis_title="Ano do Projeto", yaxis_title="Valor (R$)", hovermode="x unified")
+    fig_t4.update_yaxes(tickprefix="R$ ", separatethousands=True)
+    
+    # anos como categoria ordenada
+setor_ano["Ano_str"] = setor_ano[COL_ANO].astype(int).astype(str)
+anos_ordem = sorted(setor_ano["Ano_str"].unique().tolist(), key=int)
+
+#  cores consistentes entre os dois gráficos 
+import plotly.express as px
+segs = sorted(setor_ano[COL_SEG].unique().tolist())
+palette = px.colors.qualitative.Plotly
+color_map = {seg: palette[i % len(palette)] for i, seg in enumerate(segs)}
+
+#  layout lado a lado: barras E pizza (
+col_bar, col_pie = st.columns([2, 1])
+
+with col_bar:
+    fig_t4 = px.bar(
+        setor_ano,
+        x="Ano_str", y="Valor (R$)",
+        color=COL_SEG,
+        barmode="group",
+        category_orders={"Ano_str": anos_ordem},
+        color_discrete_map=color_map,
+        title="Recebimentos anuais por Setor (Segmento)"
+    )
+    fig_t4.update_layout(xaxis_title="Ano do Projeto", yaxis_title="Valor (R$)", hovermode="x unified")
+    fig_t4.update_yaxes(tickprefix="R$ ", separatethousands=True)
+    fig_t4.update_traces(textposition="outside")
+    st.plotly_chart(fig_t4, use_container_width=True)
+
+with col_pie:
+    st.markdown("#### 🍩 Distribuição por setor")
+    opcoes_pie = ["Todos os anos"] + anos_ordem
+    ano_pie = st.selectbox("Período", opcoes_pie, index=len(opcoes_pie)-1, key="t4_pie")
+
+    if ano_pie == "Todos os anos":
+        pie_df = setor_ano.groupby(COL_SEG, as_index=False)["Valor (R$)"].sum()
+        titulo_pie = "Distribuição por setor — todos os anos"
+    else:
+        pie_df = setor_ano[setor_ano["Ano_str"] == ano_pie].copy()
+        titulo_pie = f"Distribuição por setor — {ano_pie}"
+
+    fig_pie = px.pie(
+        pie_df,
+        names=COL_SEG, values="Valor (R$)",
+        hole=0.35, title=titulo_pie,
+        color=COL_SEG, color_discrete_map=color_map
+    )
+    fig_pie.update_traces(
+        textposition="inside",
+        texttemplate="%{label}<br>%{percent:.1%}",
+        hovertemplate="%{label}: R$ %{value:,.2f} (%{percent})<extra></extra>"
+    )
+    st.plotly_chart(fig_pie, use_container_width=True)
+
+# tabela cruzada Ano × Setor 
+with st.expander("📄 Ver tabela por ano e setor", expanded=False):
+    ordem_setores = segs 
+    tabela = (setor_ano
+              .pivot_table(index="Ano_str", columns=COL_SEG, values="Valor (R$)", aggfunc="sum", fill_value=0)
+              .reindex(columns=ordem_setores)          
+              .sort_index(key=lambda x: x.map(int)))  
+
+    # Coluna de Total de acordo com o Ano
+    tabela["Total do ano"] = tabela.sum(axis=1)
+    tabela.loc["Total geral"] = tabela.sum()
+
+    # ---> Criei uma Funcao para deixar em BRL Automaticamente 
+    def brl(x): 
+        return f"R$ {x:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+    st.dataframe(tabela.style.format(brl), use_container_width=True)
+
+    # ---> So testando o code para baixar a tabela CSV. (Eu posso remover isso futuramente)
+    csv_tabela = tabela.reset_index().rename(columns={"Ano_str": "Ano"}).to_csv(index=False, encoding="utf-8-sig")
+    st.download_button("⬇️ Baixar tabela (CSV)", data=csv_tabela, file_name="recebimentos_por_ano_setor.csv", mime="text/csv")
+
+
