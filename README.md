@@ -5,6 +5,7 @@
 [![License](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
 Dashboards interativos em **Streamlit** com dados **JSON** para dois domínios:
+
 - **PROPEGI Financeiro**
 - **Projeto de Desenvolvimento Tecnológico**
 
@@ -12,25 +13,24 @@ Projetado para **gestão baseada em dados** no contexto profissional e universit
 
 <img width="1536" height="1024" alt="63ad614e-5fd4-42e0-aebd-a09f11bfe0c4" src="https://github.com/user-attachments/assets/d3b19fe7-8477-4ae3-aa4c-f54d2c81dd9f" />
 
-
-
-
 ## 🚀 Tecnologias
+
 - Python 3.10+
 - Streamlit
 - Pandas
 - Plotly
 
-
 ## ⚙️ Instalação
 
 ### 1) Clone
+
 ```bash
 git clone https://github.com/seu-usuario/DATA-ANALYSIS-UPE.git
 cd DATA-ANALYSIS-UPE
 ```
 
 ### 2) Ambiente virtual
+
 ```bash
 python -m venv venv
 # Linux/Mac
@@ -40,6 +40,7 @@ venv\Scripts\Activate.ps1
 ```
 
 ### 3) Dependências
+
 ```bash
 # Produção
 pip install -r requirements.txt
@@ -51,12 +52,14 @@ pip install -r requirements-dev.txt
 ## ▶️ Execução Rápida
 
 ### Via **Makefile** (Linux/Mac; Windows com Make instalado)
+
 ```bash
 make run-financeiro
 make run-tecnologico
 ```
 
 ### Via **Invoke** (Windows/Linux/Mac – sem Make)
+
 ```bash
 # já dentro do venv:
 invoke run-financeiro
@@ -64,12 +67,14 @@ invoke run-tecnologico
 ```
 
 ### Comando Streamlit direto
+
 ```bash
 streamlit run "PROPEGI Financeiro/Streamlit/projeto_financeiro.py"
 streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnologico.py"
 ```
 
 > 💡 Dica: no topo de cada app, utilize:
+>
 > ```python
 > import streamlit as st
 > st.set_page_config(
@@ -79,15 +84,23 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 > )
 > ```
 
+### Executando com terminal `fish`
+
+```
+python3 -m venv venv
+source venv/bin/activate.fish
+pip install -r requirements.txt
+```
 
 ## 🔎 O que cada análise faz (explicado de forma explícita)
 
+## 📁 Projeto de Desenvolvimento Tecnológico
 
-## 📁 Projeto de Desenvolvimento Tecnológico  
 `Projeto de Desenvolvimento Tecnologico/Streamlit/analisesFinanceiras/`
 
 ### 1) Séries — **Recebimentos mensais por órgão (Agência, Unidade, IA-UPE)**
-**Arquivo:** `analise1.py`  
+
+**Arquivo:** `analise1.py`
 
 - **Objetivo:** visualizar a **evolução mensal** dos recebimentos por **órgão** ao longo de um ano.
 - **Como ler:** cada linha representa um órgão (Agência, Unidade, IA-UPE). Picos e vales indicam **sazonalidade** e **meses críticos**.
@@ -99,7 +112,8 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 ---
 
 ### 2) Barras empilhadas — **Projetos em desenvolvimento por segmento/ano**
-**Arquivo:** `analise2.py`  
+
+**Arquivo:** `analise2.py`
 
 - **Objetivo:** comparar a **quantidade de projetos** por **segmento** (Educação, Meio Ambiente, Saúde, Segurança, Tecnologia) em cada **ano**.
 - **Como ler:** barras empilhadas por ano; cada cor é um segmento com o respectivo **rótulo de contagem**.
@@ -111,7 +125,8 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 ---
 
 ### 3) Barras agrupadas — **Recebimentos anuais por órgão (Agência, Unidade, IA-UPE)**
-**Arquivo:** `analise3.py`  
+
+**Arquivo:** `analise3.py`
 
 - **Objetivo:** comparar o **total anual** recebido por cada **órgão**.
 - **Como ler:** barras lado a lado (Agência, Unidade, IA-UPE) para cada ano; **rótulos** em k ajudam na leitura imediata.
@@ -123,11 +138,12 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 ---
 
 ### 4) Barras + Donut — **Recebimentos por ano por Setor (Segmento)**
-**Arquivo:** `analise4.py`  
+
+**Arquivo:** `analise4.py`
 
 - **Objetivo:** entender valores por **segmento** ao longo dos anos e a **distribuição percentual** em um **ano** específico.
-- **Como ler:**  
-  - **Barras** com valores por segmento em cada ano.  
+- **Como ler:**
+  - **Barras** com valores por segmento em cada ano.
   - **Donut** mostra a **participação (%)** de cada segmento no ano filtrado.
 - **Filtros/controles:** seleção de **período/ano** (dropdown para a donut).
 - **Uso típico:** balancear investimentos entre segmentos; identificar **concentrações** e **oportunidades**.
@@ -137,11 +153,13 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 
 ---
 
-## 📁 PROPEGI Financeiro  
+## 📁 PROPEGI Financeiro
+
 `PROPEGI Financeiro/Streamlit/analisesFinanceiras/`
 
 ### 1) Heatmap — **Comparativo de valores das folhas por projeto (Mês/Ano)**
-**Arquivo:** `analise1_comparativa.py`  
+
+**Arquivo:** `analise1_comparativa.py`
 
 - **Objetivo:** comparar a **intensidade mensal/anual** dos **valores de folha** por **projeto**.
 - **Como ler:** tons mais escuros = **maior valor**; eixo Y são **projetos** e eixo X é **Mês/Ano**.
@@ -153,7 +171,8 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 ---
 
 ### 2) Barras horizontais — **Somatório dos valores das folhas por projeto**
-**Arquivo:** `analise2_somatorio.py`  
+
+**Arquivo:** `analise2_somatorio.py`
 
 - **Objetivo:** ranquear projetos pelo **total acumulado** (soma) no período filtrado.
 - **Como ler:** barras ordenadas (desc); rótulos exibem o **total em R$** por projeto.
@@ -165,7 +184,8 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 ---
 
 ### 3) Barras verticais — **Evolução mensal do valor total das folhas (todos os projetos)**
-**Arquivo:** `analise3_total_mensal.py`  
+
+**Arquivo:** `analise3_total_mensal.py`
 
 - **Objetivo:** acompanhar o **total mensal** somando **todos os projetos**.
 - **Como ler:** barras por mês; rótulos com valores em **R$** destacam picos e vales.
@@ -174,16 +194,17 @@ streamlit run "Projeto de Desenvolvimento Tecnologico/Streamlit/projeto_tecnolog
 
 <img width="1365" height="519" alt="image" src="https://github.com/user-attachments/assets/5ca3284a-bdce-4d66-b7da-46180ccb4ce5" />
 
-
 > **Observação:** `data_utils.py` padroniza campos do JSON, cria colunas derivadas (ex.: `ano`, `mes`) e agrega dados.
 
 ## ✅ Qualidade e Produtividade
+
 - **Lint:** `flake8`
 - **Formatação:** `black`
 - **Testes:** `pytest`
 - **Automação:** `Makefile` e `invoke (tasks.py)`
 
 Comandos úteis:
+
 ```bash
 # Com Make
 make lint
@@ -199,4 +220,5 @@ invoke clean
 ```
 
 ## 📄 Licença
+
 Distribuído sob a licença **MIT**. Consulte o arquivo `LICENSE`.
