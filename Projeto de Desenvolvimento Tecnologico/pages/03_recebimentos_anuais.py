@@ -58,7 +58,7 @@ df = preparar_datas(df)
 
 # Agrupamento por Ano
 df_group = (
-    df.groupby("Ano")[["Valor agência", "Valor unidade", "Valor IA-UPE"]]
+    df.groupby("Ano")[["valorAgencia", "valorUnidade", "valorIAUPE"]]
       .sum()
       .reset_index()
       .sort_values("Ano")
@@ -68,25 +68,25 @@ df_group = (
 fig = px.bar(
     df_group,
     x="Ano",
-    y=["Valor agência", "Valor unidade", "Valor IA-UPE"],
+    y=["valorAgencia", "valorUnidade", "valorIAUPE"],
     barmode="group",
     text_auto=".2s",
     title="❖ Recebimentos anuais por órgão",
     labels={"value": "R$ total no ano", "variable": "Órgão"},
 )
 fig.update_layout(xaxis=dict(type="category"))
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 
 # Cards resumo
 _inject_css()
 st.subheader("❖ Resumo dos anos")
 
-tot_agencia = float(df_group["Valor agência"].sum())
-tot_unidade = float(df_group["Valor unidade"].sum())
-tot_iaupe   = float(df_group["Valor IA-UPE"].sum())
+tot_agencia = float(df_group["valorAgencia"].sum())
+tot_unidade = float(df_group["valorUnidade"].sum())
+tot_iaupe   = float(df_group["valorIAUPE"].sum())
 
 df_group["TotalAno"] = (
-    df_group["Valor agência"] + df_group["Valor unidade"] + df_group["Valor IA-UPE"]
+    df_group["valorAgencia"] + df_group["valorUnidade"] + df_group["valorIAUPE"]
 )
 idx_pico   = df_group["TotalAno"].idxmax()
 ano_pico   = int(df_group.loc[idx_pico, "Ano"])
@@ -107,4 +107,4 @@ with c4:
 # Tabela
 st.markdown("---")
 with st.expander("◆ Ver tabela agregada"):
-    st.dataframe(df_group, use_container_width=True)
+    st.dataframe(df_group, width='stretch')

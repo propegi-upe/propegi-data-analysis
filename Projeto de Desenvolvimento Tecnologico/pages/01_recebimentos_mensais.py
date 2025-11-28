@@ -67,13 +67,13 @@ df_mes = agrupar_mensal(df, ano_sel)
 fig = px.line(
     df_mes,
     x="MesNome",
-    y=["Valor agência", "Valor unidade", "Valor IA-UPE"],
+    y=["valorAgencia", "valorUnidade", "valorIAUPE"],
     markers=True,
     title=f"Recebimentos mensais — {ano_sel}",
     labels={"value": "R$ no mês", "MesNome": "Mês", "variable": "Órgão"},
 )
 fig.update_layout(legend_title_text="Órgão", xaxis_tickangle=-45)
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 
 # Resumo do ano: MÉDIA + TOTAL + PICO 
 _inject_css()
@@ -86,12 +86,12 @@ tot_unidade = totais["unidade"]
 tot_iaupe   = totais["ia_upe"]
 
 # Médias mensais
-media_agencia = float(np.mean(df_mes["Valor agência"]))
-media_unidade = float(np.mean(df_mes["Valor unidade"]))
-media_iaupe   = float(np.mean(df_mes["Valor IA-UPE"]))
+media_agencia = float(np.mean(df_mes["valorAgencia"]))
+media_unidade = float(np.mean(df_mes["valorUnidade"]))
+media_iaupe   = float(np.mean(df_mes["valorIAUPE"]))
 
 # Pico do ano
-df_mes["TotalMes"] = df_mes["Valor agência"] + df_mes["Valor unidade"] + df_mes["Valor IA-UPE"]
+df_mes["TotalMes"] = df_mes["valorAgencia"] + df_mes["valorUnidade"] + df_mes["valorIAUPE"]
 idx_pico   = df_mes["TotalMes"].idxmax()
 mes_pico   = df_mes.loc[idx_pico, "MesNome"]
 valor_pico = float(df_mes.loc[idx_pico, "TotalMes"])
@@ -110,7 +110,7 @@ with c4:
 st.markdown("---")
 with st.expander("◆ Ver tabela mensal detalhada"):
     st.dataframe(
-        df_mes[["Mes", "MesNome", "Valor agência", "Valor unidade", "Valor IA-UPE", "TotalMes"]]
+        df_mes[["Mes", "MesNome", "valorAgencia", "valorUnidade", "valorIAUPE", "TotalMes"]]
         .rename(columns={"MesNome": "Mês"}),
-        use_container_width=True,
+        width='stretch',
     )

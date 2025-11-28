@@ -11,4 +11,3 @@ st.page_link("pages/02_projetos_por_segmento.py", label="Projetos em desenvolvim
 st.page_link("pages/03_recebimentos_anuais.py", label="Recebimentos anuais por órgão", icon="📈")
 st.page_link("pages/04_recebimentos_por_setor.py", label="Recebimentos por setor (segmento)", icon="🥧")
 
-

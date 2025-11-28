@@ -8,7 +8,12 @@ INPUT_DIR = BASE_DIR / "input"
 
 # Nome padrão do JSON (ajuste se necessário)
 DEFAULT_JSON_NAME = "Projetos de Desenvolvimento Tecnologico.json"
-BRL_COLS = ["Valor agência", "Valor unidade", "Valor IA-UPE"]
+BRL_COLS = [
+    "valorPactuado",       # <--- NOVO: 19/11
+    "valorAgencia",
+    "valorUnidade",
+    "valorIAUPE",
+]
 
 def input_path(name: str | Path = DEFAULT_JSON_NAME) -> Path:
     """Retorna o caminho absoluto dentro de input/."""
@@ -32,12 +37,17 @@ def _br_to_float(serie: pd.Series) -> pd.Series:
     """
     if pd.api.types.is_numeric_dtype(serie):
         return serie.astype(float)
+    
+    serie = serie.fillna("0").astype(str)
+    serie = serie.str.strip() # remove espaços e caracteres invisíveis do início ao fim
+    serie = serie.str.replace(r'[^\d\.\,]', '', regex=True) # Remove qualquer coisa que não seja dígito, ponto ou vírgula
+
+    # Cconversão BR -> Float
     serie = (
-        serie.fillna("0")
-             .astype(str)
-             .str.replace(".", "", regex=False)
-             .str.replace(",", ".", regex=False)
+        serie.str.replace(".", "", regex=False)  # Remove separador de milhar (ponto)
+             .str.replace(",", ".", regex=False) # Substitui vírgula por ponto decimal
     )
+    
     return pd.to_numeric(serie, errors="coerce").fillna(0.0)
 
 def normalizar_valores(df: pd.DataFrame) -> pd.DataFrame:
@@ -48,13 +58,57 @@ def normalizar_valores(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 def preparar_datas(df: pd.DataFrame) -> pd.DataFrame:
-    """Converte 'Data publicação' e cria colunas Ano/Mes/MesNome."""
+    """Converte 'dataPublicacao' e cria colunas Ano/Mes/MesNome."""
     df = df.copy()
-    df["Data publicação"] = pd.to_datetime(df["Data publicação"], dayfirst=True, errors="coerce")
-    df["Ano"] = df["Data publicação"].dt.year
-    df["Mes"] = df["Data publicação"].dt.month
-    df["MesNome"] = df["Data publicação"].dt.strftime("%m/%b")
+
+    # -------------- MODIFICAÇAO 19/11 (INÍCIO) --------------
+    # Colunas de data a serem convertidas
+    date_cols = ["dataPublicacao", "inicioData", "terminoData"]
+
+    for col in date_cols:
+        if col in df.columns:
+            df[col] = pd.to_datetime(df[col], errors="coerce")
+    # -------------- MODIFICAÇAO 19/11 (FIM) --------------
+
+    df["dataPublicacao"] = pd.to_datetime(df["dataPublicacao"], errors="coerce") # verificar se não é uma redundância
+    df["Ano"] = df["dataPublicacao"].dt.year
+    df["Mes"] = df["dataPublicacao"].dt.month
+    df["MesNome"] = df["dataPublicacao"].dt.strftime("%m/%b")
     return df
+
+# -------------- MODIFICAÇAO 26/11 (INÍCIO) --------------
+
+"""Extrai o ano do formato 'XXX-AAAA'."""
+def _extrair_ano_do_acordo(serie_acordo: pd.Series) -> pd.Series:
+    serie = serie_acordo.astype(str).str.split('-').str[-1]
+    # Converte para numérico e coerce erros (onde a string não é um ano)
+    return pd.to_numeric(serie, errors='coerce')
+
+# Cria uma coluna 'AnoProjeto' usando lógica sequencial (Data Publicação > InícioData > Acordo).
+def imputar_data_projeto(df: pd.DataFrame) -> pd.DataFrame:
+    df = df.copy()
+    
+    # 1. Trata 'acordoConvenioNumero' para extrair o ano
+    # O Ano será preenchido como NaN se a extração falhar.
+    df['AnoAcordo'] = _extrair_ano_do_acordo(df['acordoConvenioNumero'])
+    
+    # 2. Preenche os NaNs em 'Ano' com o 'Ano' de 'InícioData' (se InícioData for válida)
+    # df['InícioData'].dt.year obtém o ano do objeto datetime.
+    df['Ano'] = df['Ano'].fillna(df['inicioData'].dt.year)
+    
+    # 3. Preenche os NaNs restantes em 'Ano' com o 'Ano' extraído do acordo
+    df['Ano'] = df['Ano'].fillna(df['AnoAcordo'])
+    
+    # 4. Remove a coluna auxiliar e converte 'Ano' para inteiro (para visualização limpa)
+    df = df.drop(columns=['AnoAcordo'], errors='ignore')
+    
+    # 5. Cria a categoria "Não Definido" para o agrupamento, onde o ano ainda é nulo.
+    # Converte o Ano para string para poder usar 'Não Definido' na mesma coluna
+    df['Ano'] = df['Ano'].fillna(9999).astype(int).astype(str).replace('9999', 'Não Definido')
+    
+    return df
+
+# -------------- MODIFICAÇAO 26/11 (FIM) --------------
 
 def agrupar_mensal(df: pd.DataFrame, ano: int) -> pd.DataFrame:
     """Soma por mês (1..12) os valores da agência, unidade e IA-UPE para o ano dado."""
@@ -81,12 +135,24 @@ def agrupar_mensal(df: pd.DataFrame, ano: int) -> pd.DataFrame:
 def kpis_anuais(df_mes: pd.DataFrame) -> dict:
     """Totais do ano (soma dos meses) para cards."""
     return {
-        "agencia": float(df_mes["Valor agência"].sum()) if "Valor agência" in df_mes else 0.0,
-        "unidade": float(df_mes["Valor unidade"].sum()) if "Valor unidade" in df_mes else 0.0,
-        "ia_upe": float(df_mes["Valor IA-UPE"].sum()) if "Valor IA-UPE" in df_mes else 0.0,
+        "agencia": float(df_mes["valorAgencia"].sum()) if "valorAgencia" in df_mes else 0.0,
+        "unidade": float(df_mes["valorUnidade"].sum()) if "valorUnidade" in df_mes else 0.0,
+        "ia_upe": float(df_mes["valorIAUPE"].sum()) if "valorIAUPE" in df_mes else 0.0,
     }
 
 def brl(v: float) -> str:
     """Formata float para BRL simples (R$ 1.234,56)."""
     s = f"{v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
     return f"R$ {s}"
+    
+# -------------- MODIFICAÇAO 19/11 (INÍCIO) --------------
+# Função para filtrar, ordenar e retornar os 5 projetos mais recentes
+def acordos_recentes(df: pd.DataFrame) -> pd.DataFrame:
+    df_copy = df.copy()
+
+    # Ordena por InícioData em ordem decrescente (mais recentes primeiro)
+    df_ordenado = df_copy.sort_values(by='inicioData', ascending=False)
+    
+    # Retorna os últimos 5
+    return df_ordenado.head(5)
+# -------------- MODIFICAÇAO 19/11 (FIM) --------------

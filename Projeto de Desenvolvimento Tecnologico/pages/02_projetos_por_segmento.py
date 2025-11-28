@@ -1,9 +1,14 @@
 import streamlit as st
 import plotly.express as px
+import pandas as pd
 
 from data_utils import (          # <- import ABSOLUTO
     carregar_json,
     preparar_datas,
+    imputar_data_projeto,         # <--- NOVO: 26/11
+    acordos_recentes,             # <--- NOVO: 19/11
+    brl,                          # <--- NOVO: 19/11
+    normalizar_valores,           # <--- NOVO: 19/11
     input_path,                   # <- resolve caminho dentro de input/
     DEFAULT_JSON_NAME,            # <- nome padrão do JSON
 )
@@ -12,17 +17,171 @@ st.title("◈ Projetos em desenvolvimento por segmento e ano")
 st.caption("Visualização da quantidade de projetos por segmento em cada ano.")
 
 # Carregamento
+# Ordem: Carregar -> Normalizar Valores (limpar moedas) -> Preparar Datas (limpar datas)
 df = carregar_json(input_path(DEFAULT_JSON_NAME))
+df = normalizar_valores(df) # <--- NOVO: 19/11
 df = preparar_datas(df)
+df = imputar_data_projeto(df) # <--- NOVO: 26/11
 
-# Verifica se a coluna "Segmento" existe
-if "Segmento" not in df.columns:
-    st.error("A coluna 'Segmento' não foi encontrada no JSON.")
+
+# Verifica se a coluna "segmento" existe
+if "segmento" not in df.columns:
+    st.error("A coluna 'segmento' não foi encontrada no JSON.")
     st.stop()
+
+# -------------- MODIFICAÇAO 26/11 (INÍCIO) --------------
+
+# Tratamento da coluna 'segmento'
+if 'segmento' in df.columns:
+    df['segmento'] = df['segmento'].fillna('Não Definido') # Preenche valores nulos com uma categoria explícita
+
+# -------------- MODIFICAÇAO 26/11 (FIM) --------------
+
+# -------------- MODIFICAÇAO 19/11 (INÍCIO) --------------
+
+# Função para injetar CSS customizado
+def _inject_css():
+    st.markdown(
+        """
+        <style>
+          .project-card {
+          /* espaçamento interno */
+            padding: 10px 10px; 
+            border-left: 5px solid #00BFFF; 
+            background: #1e1e1e;
+            border-radius: 8px;
+            margin-bottom: 15px; 
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            height: 100%;
+          }
+          /* Ajustes nas fontes */
+          .project-title { 
+            font-size: 1.0rem; 
+            font-weight: 600; 
+            color: #74CCF4; 
+            margin-bottom: 3px;
+          }
+          /* Reduz a fonte dos detalhes (segmento, coordenador, datas) */
+          .project-detail { 
+            font-size: 0.8rem; 
+            color: #CCCCCC; 
+            margin-top: 2px; /* Reduz o espaçamento entre as linhas de detalhe */
+            line-height: 1.3; /* Melhora a leitura do texto longo */
+          }
+          /* Destaque para o valor monetário */
+          .project-value { 
+            font-size: 1.05rem; 
+            font-weight: 700; 
+            color: #4CAF50; 
+            margin-top: 8px;
+            padding-top: 5px; /* Diminui o padding acima do valor */
+            border-top: 1px dashed rgba(255,255,255,0.1); /* Separador visual */
+          }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Função de Card Customizada para Acordos
+def agreement_card(projeto, segmento, pactuado, inicio, termino, coordenador):
+    
+    # Formata datas para DD/MM/AAAA (necessário pois o row[data] é um objeto datetime)
+    inicio_str = inicio.strftime('%d/%m/%Y') if pd.notna(inicio) else "N/D"
+    termino_str = termino.strftime('%d/%m/%Y') if pd.notna(termino) else "N/D"
+
+    st.markdown(
+        f"""
+        <div class="project-card">
+          <div class="project-title">{projeto}</div>
+          <div class="project-detail">
+            Segmento: <strong>{segmento}</strong>
+          </div>
+          <div class="project-detail">
+            Coordenador: <strong>{coordenador}</strong>
+          </div>
+          <div style="margin-top: 10px;">
+            Início: <span style="font-weight: 600;">{inicio_str}</span> | 
+            Término: <span style="font-weight: 600;">{termino_str}</span>
+          </div>
+          <div class="project-value" style="margin-top: 10px;">
+            Valor Pactuado: {brl(pactuado)}
+          </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+# Injeção de CSS
+_inject_css()
+
+
+st.subheader("Acordos Firmados Recentemente")
+
+df_recentes = acordos_recentes(df)
+num_cards = len(df_recentes)
+
+if num_cards == 0:
+    st.info("Nenhum acordo recente encontrado ou dados insuficientes.")
+else:
+    # 1. Define as abas: Pag 1 (Cards 1 e 2), Pag 2 (Cards 3 e 4), Pag 3 (Card 5)
+    tab1, tab2, tab3 = st.tabs(["Pag 1", "Pag 2", "Pag 3"])
+
+    # --- TAB 1: Cards 1 e 2 ---
+    with tab1:
+        if num_cards >= 2:
+            col1, col2 = st.columns(2)
+            
+            # Card 1 (Índice 0)
+            with col1:
+                row0 = df_recentes.iloc[0]
+                agreement_card(projeto=row0.get("nomeProjeto", "N/A"), segmento=row0.get("segmento", "N/A"), pactuado=row0.get("valorPactuado", 0.0), inicio=row0.get("inicioData"), termino=row0.get("terminoData"), coordenador=row0.get("coordenador", "N/A"))
+            
+            # Card 2 (Índice 1)
+            with col2:
+                row1 = df_recentes.iloc[1]
+                agreement_card(projeto=row1.get("nomeProjeto", "N/A"), segmento=row1.get("segmento", "N/A"), pactuado=row1.get("valorPactuado", 0.0), inicio=row1.get("inicioData"), termino=row1.get("terminoData"), coordenador=row1.get("coordenador", "N/A"))
+        else:
+            st.info(f"Apenas {num_cards} acordos disponíveis. Conteúdo da Pag 1 incompleto.")
+
+    # --- TAB 2: Cards 3 e 4 ---
+    with tab2:
+        if num_cards >= 4:
+            col3, col4 = st.columns(2)
+
+            # Card 3 (Índice 2)
+            with col3:
+                row2 = df_recentes.iloc[2]
+                agreement_card(projeto=row2.get("nomeProjeto", "N/A"), segmento=row2.get("Segmento", "N/A"), pactuado=row2.get("valorPactuado", 0.0), inicio=row2.get("inicioData"), termino=row2.get("terminoData"), coordenador=row2.get("coordenador", "N/A"))
+            
+            # Card 4 (Índice 3)
+            with col4:
+                row3 = df_recentes.iloc[3]
+                agreement_card(projeto=row3.get("nomeProjeto", "N/A"), segmento=row3.get("Segmento", "N/A"), pactuado=row3.get("valorPactuado", 0.0), inicio=row3.get("inicioData"), termino=row3.get("terminoData"), coordenador=row3.get("coordenador", "N/A"))
+        elif num_cards > 2:
+             st.info(f"Apenas {num_cards} acordos disponíveis. Conteúdo da Pag 2 incompleto.")
+        else:
+            st.info("Página 2 vazia. Mínimo de 3 acordos necessários.")
+
+
+    # --- TAB 3: Card 5 (Último Card) ---
+    with tab3:
+        if num_cards == 5:
+            # Centraliza o card único na aba (1 card em 3 colunas, usando a coluna do meio)
+            col_side1, col_center, col_side2 = st.columns([1, 1.5, 1]) 
+            
+            with col_center:
+                row4 = df_recentes.iloc[4]
+                agreement_card(projeto=row4.get("nomeProjeto", "N/A"), segmento=row4.get("segmento", "N/A"), pactuado=row4.get("valorPactuado", 0.0), inicio=row4.get("inicioData"), termino=row4.get("terminoData"), coordenador=row4.get("coordenador", "N/A"))
+        else:
+            st.info("Página 3 vazia. Mínimo de 5 acordos necessários.")
+
+st.markdown("---")
+
+# -------------- MODIFICAÇAO 19/11 (FIM) --------------
 
 # Agrupamento: conta projetos por Ano e Segmento
 df_group = (
-    df.groupby(["Ano", "Segmento"]).size().reset_index(name="QtdProjetos").sort_values(["Ano", "Segmento"]) 
+    df.groupby(["Ano", "segmento"]).size().reset_index(name="QtdProjetos").sort_values(["Ano", "segmento"]) 
 )
 
 # Gráfico de barras empilhadas
@@ -30,14 +189,67 @@ fig = px.bar(
     df_group,
     x="Ano",
     y="QtdProjetos",
-    color="Segmento",
+    color="segmento",
     text="QtdProjetos",
     title="❖ Projetos em desenvolvimento por segmento/ano",
     labels={"QtdProjetos": "Quantidade de Projetos"},
 )
 fig.update_layout(barmode="stack", xaxis=dict(type="category"))
-st.plotly_chart(fig, use_container_width=True)
+st.plotly_chart(fig, width='stretch')
 
 # Tabela
 with st.expander("◆ Ver tabela agregada"):
-    st.dataframe(df_group, use_container_width=True)
+    st.dataframe(df_group, width='stretch')
+
+
+# -------------- MODIFICAÇAO 26/11 (INÍCIO) --------------
+# --- VALIDAÇÃO DE CONTAGEM (ADICIONAR) ---
+
+# 1. Total de projetos no DataFrame original (DF Limpo)
+total_df_original = len(df) 
+
+# 2. Total de projetos no DataFrame Agregado (Soma da coluna QtdProjetos)
+total_df_agregado = df_group["QtdProjetos"].sum()
+
+# 3. Exibição do Teste de Sanidade
+st.subheader("Verificação de Integridade dos Dados")
+col_original, col_agregado, col_status = st.columns(3)
+
+col_original.metric(
+    "Total de Linhas (Original)", 
+    total_df_original
+)
+
+col_agregado.metric(
+    "Total Agregado (Soma do Gráfico)", 
+    total_df_agregado
+)
+
+# Verifica se os números batem e exibe o status
+if total_df_original == total_df_agregado:
+    col_status.success("✅ Contagem validada! O gráfico inclui 100% dos projetos.")
+else:
+    col_status.error(f"❌ Erro de Contagem: Diferença de {total_df_original - total_df_agregado} projetos. Verifique filtros ou colunas com valores nulos.")
+
+st.markdown("---")
+# ----------------------------------------------------------------
+# --- Verificação e Tratamento de Nulos ---
+
+# Quantidade de projetos ignorados por falta de Ano ou Segmento ou na categoria 'Não Definido'
+nulos_e_imputados_ano = (
+    df['Ano'].isna() | (df['Ano'] == 'Não Definido')
+).sum()
+
+nulos_e_imputados_segmento = (
+    df['segmento'].isna() | (df['segmento'] == 'Não Definido')
+).sum()
+
+# Exibição (Opcional, mas útil para debug)
+st.subheader("Relatório de Valores Nulos")
+st.markdown(f"- Projetos sem **Ano** de Publicação: **{nulos_e_imputados_ano}**")
+st.markdown(f"- Projetos sem **Segmento** definido: **{nulos_e_imputados_segmento}**")
+
+# A contagem real de projetos faltando é o número de linhas com NaN nessas colunas
+# que foram omitidas do df_group.
+
+# -------------- MODIFICAÇAO 26/11 (FIM) --------------
