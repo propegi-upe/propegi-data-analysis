@@ -1,39 +1,4 @@
 
-## Como testar o carregamento de backups (test_backup.py)
-
-O projeto inclui um script de teste para validar o carregamento dos backups de dados diretamente do GitHub. Ele permite:
-- Verificar se o backup mais recente está acessível e válido
-- Listar todos os backups disponíveis
-- Selecionar e inspecionar qualquer backup manualmente
-
-### Como rodar o teste (Windows PowerShell ou terminal Unix)
-
-1. Ative o ambiente virtual (caso ainda não esteja ativado):
-
-  ```powershell
-  .\.venv\Scripts\Activate.ps1
-  ```
-  ou, no bash/zsh:
-  ```bash
-  source .venv/bin/activate
-  ```
-
-2. Execute o script de teste:
-
-  ```powershell
-  python Projeto de Desenvolvimento Tecnologico/test_backup.py
-  ```
-  ou, no bash/zsh:
-  ```bash
-  python 'Projeto de Desenvolvimento Tecnologico/test_backup.py'
-  ```
-
-O script irá:
-- Mostrar informações do backup mais recente
-- Listar todos os backups disponíveis
-- Permitir que você selecione um backup para inspecionar os dados
-
-Se houver algum erro de conexão ou leitura, o script exibirá mensagens detalhadas para facilitar o diagnóstico.
 # ◈ Data Analysis UPE
 
 [![Python](https://img.shields.io/badge/Python-3.10+-blue.svg)](https://www.python.org/)
@@ -187,9 +152,43 @@ Observação: os caminhos acima assumem que você está na máquina local onde o
   - Se uma página usa `st.selectbox(..., index=0)` e não existem opções, Streamlit pode lançar erro. Todas as páginas já possuem validação para evitar esse problema.
 
 ---
+## 7) Como testar o carregamento de backups (test_backup.py)
 
+O projeto inclui um script de teste para validar o carregamento dos backups de dados diretamente do GitHub. Ele permite:
+- Verificar se o backup mais recente está acessível e válido
+- Listar todos os backups disponíveis
+- Selecionar e inspecionar qualquer backup manualmente
 
-## 7) Funcionalidades avançadas e testes
+### Como rodar o teste (Windows PowerShell ou terminal Unix)
+
+1. Ative o ambiente virtual (caso ainda não esteja ativado):
+
+  ```powershell
+  .\.venv\Scripts\Activate.ps1
+  ```
+  ou, no bash/zsh:
+  ```bash
+  source .venv/bin/activate
+  ```
+
+2. Execute o script de teste:
+
+  ```powershell
+  python Projeto de Desenvolvimento Tecnologico/test_backup.py
+  ```
+  ou, no bash/zsh:
+  ```bash
+  python 'Projeto de Desenvolvimento Tecnologico/test_backup.py'
+  ```
+
+O script irá:
+- Mostrar informações do backup mais recente
+- Listar todos os backups disponíveis
+- Permitir que você selecione um backup para inspecionar os dados
+
+Se houver algum erro de conexão ou leitura, o script exibirá mensagens detalhadas para facilitar o diagnóstico.
+---
+## 8) Funcionalidades avançadas e testes
 
 - Testes automatizados para validação e recuperação de backups dos dados estão disponíveis em scripts de teste.
 - Storytelling e validações automáticas de dados em todas as páginas dos dashboards.
