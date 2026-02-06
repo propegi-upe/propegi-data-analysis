@@ -3,15 +3,13 @@ import plotly.express as px
 import numpy as np
 
 from data_utils import (
-    carregar_ultimo_backup_json,  # dinâmico!
-    normalizar_valores,
-    preparar_datas,
-    agrupar_mensal,
-    kpis_anuais,
+    carregar_ultimo_backup_json, 
+    normalize_values,
+    prepare_dates,
+    aggregate_monthly_data,
+    calculate_annual_kpis,
+    to_brl,
 )
-
-def _brl(v: float) -> str:
-    return f"R$ {v:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 def _inject_css():
     st.markdown(
@@ -46,7 +44,7 @@ def kpi_card(title: str, big_value: str, small_label: str, small_value: str):
     )
 
 # -------- Página principal --------
-st.header("◈ Recebimentos mensais por órgão (Agência, Unidade, IA-UPE)", divider="blue")
+st.header("Recebimentos mensais por órgão (Agência, Unidade, IA-UPE)", divider="blue")
 st.info("""
 **Storytelling:**
 Esta análise apresenta a evolução dos recebimentos mensais dos projetos de desenvolvimento tecnológico. O objetivo é identificar padrões sazonais, tendências de crescimento ou queda ao longo do tempo, e fornecer subsídios para o planejamento financeiro e estratégico dos projetos.
@@ -63,23 +61,26 @@ if isinstance(df, list):
 if df.empty or 'dataPublicacao' not in df.columns:
     st.error("Dados inválidos ou coluna 'dataPublicacao' ausente no backup.")
     st.stop()
-df = normalizar_valores(df)
-df = preparar_datas(df)
+df = normalize_values(df)
+df = prepare_dates(df)
 
-# Filtro de ano
-anos_disponiveis = sorted([int(a) for a in df["Ano"].dropna().unique()])
-ano_sel = st.selectbox("Selecione o ano", anos_disponiveis, index=0)
+# Filtro de Ano
+# Extrai anos únicos, remove nulos e converte float (2024.0) para int (2024)
+available_years = sorted([int(a) for a in df["Ano"].dropna().unique()])
+# index=0 define o primeiro ano da lista (o mais antigo) como padrão
+selected_year = st.selectbox("Selecione o ano", available_years, index=0)
 
-# Agregação mensal (12 meses garantidos)
-df_mes = agrupar_mensal(df, ano_sel)
+# Processa os dados para criar a visão temporal (Jan-Dez)
+# Garante que meses sem movimento apareçam zerados (não quebra o gráfico)
+df_monthly = aggregate_monthly_data(df, selected_year)
 
 # Gráfico de linhas (3 séries)
 fig = px.line(
-    df_mes,
+    df_monthly,
     x="MesNome",
     y=["valorAgencia", "valorUnidade", "valorIAUPE"],
     markers=True,
-    title=f"Recebimentos mensais — {ano_sel}",
+    title=f"Recebimentos mensais — {selected_year}",
     labels={"value": "R$ no mês", "MesNome": "Mês", "variable": "Órgão"},
 )
 fig.update_layout(legend_title_text="Órgão", xaxis_tickangle=-45)
@@ -87,40 +88,40 @@ st.plotly_chart(fig, width='stretch')
 
 # Resumo do ano: MÉDIA + TOTAL + PICO 
 _inject_css()
-st.subheader("❖ Resumo do Ano")
+st.subheader("Resumo do Ano")
 
 # Totais anuais 
-totais = kpis_anuais(df_mes)
-tot_agencia = totais["agencia"]
-tot_unidade = totais["unidade"]
-tot_iaupe   = totais["ia_upe"]
+annual_totals = calculate_annual_kpis(df_monthly)
+agencia_totals = annual_totals["agencia"]
+unidade_totals = annual_totals["unidade"]
+iaupe_totals = annual_totals["ia_upe"]
 
 # Médias mensais
-media_agencia = float(np.mean(df_mes["valorAgencia"]))
-media_unidade = float(np.mean(df_mes["valorUnidade"]))
-media_iaupe   = float(np.mean(df_mes["valorIAUPE"]))
+agencia_mean = float(np.mean(df_monthly["valorAgencia"]))
+unidade_mean = float(np.mean(df_monthly["valorUnidade"]))
+iaupe_mean = float(np.mean(df_monthly["valorIAUPE"]))
 
 # Pico do ano
-df_mes["TotalMes"] = df_mes["valorAgencia"] + df_mes["valorUnidade"] + df_mes["valorIAUPE"]
-idx_pico   = df_mes["TotalMes"].idxmax()
-mes_pico   = df_mes.loc[idx_pico, "MesNome"]
-valor_pico = float(df_mes.loc[idx_pico, "TotalMes"])
+df_monthly["TotalMes"] = df_monthly["valorAgencia"] + df_monthly["valorUnidade"] + df_monthly["valorIAUPE"]
+peak_idx = df_monthly["TotalMes"].idxmax()
+peak_month = df_monthly.loc[peak_idx, "MesNome"]
+peak_value = float(df_monthly.loc[peak_idx, "TotalMes"])
 
 c1, c2, c3, c4 = st.columns(4)
 with c1:
-    kpi_card("Média mensal — Agência", _brl(media_agencia), "Total anual — Agência:", _brl(tot_agencia))
+    kpi_card("Média mensal — Agência", to_brl(agencia_mean), "Total anual — Agência:", to_brl(agencia_totals))
 with c2:
-    kpi_card("Média mensal — Unidade", _brl(media_unidade), "Total anual — Unidade:", _brl(tot_unidade))
+    kpi_card("Média mensal — Unidade", to_brl(unidade_mean), "Total anual — Unidade:", to_brl(unidade_totals))
 with c3:
-    kpi_card("Média mensal — IA-UPE", _brl(media_iaupe), "Total anual — IA-UPE:", _brl(tot_iaupe))
+    kpi_card("Média mensal — IA-UPE", to_brl(iaupe_mean), "Total anual — IA-UPE:", to_brl(iaupe_totals))
 with c4:
-    kpi_card(f"Pico do ano — {mes_pico}", _brl(valor_pico), "Mês com maior soma:", "Soma dos 3 valores")
+    kpi_card(f"Pico do ano — {peak_month}", to_brl(peak_value), "Mês com maior soma:", "Soma dos 3 valores")
 
 # Tabela 
 st.markdown("---")
-with st.expander("◆ Ver tabela mensal detalhada"):
+with st.expander("Ver tabela mensal detalhada"):
     st.dataframe(
-        df_mes[["Mes", "MesNome", "valorAgencia", "valorUnidade", "valorIAUPE", "TotalMes"]]
+        df_monthly[["Mes", "MesNome", "valorAgencia", "valorUnidade", "valorIAUPE", "TotalMes"]]
         .rename(columns={"MesNome": "Mês"}),
         width='stretch',
     )
