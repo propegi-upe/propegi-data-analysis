@@ -1,4 +1,3 @@
----
 
 ## Como testar o carregamento de backups (test_backup.py)
 
